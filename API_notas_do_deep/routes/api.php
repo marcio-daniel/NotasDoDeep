@@ -22,8 +22,10 @@ Route::middleware('jwt.auth')->group(function () {
     Route::apiResource('/note','NoteController');
     Route::post('/logout','AuthenticationController@logout');
     Route::post('/refresh','AuthenticationController@refresh');
+
 });
 
+Route::get('/validateToken','AuthenticationController@validateToken');
 
 Route::post('/login','AuthenticationController@login');
 Route::post('/registration','AuthenticationController@registration');

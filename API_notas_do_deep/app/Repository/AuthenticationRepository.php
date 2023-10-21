@@ -41,4 +41,8 @@ class AuthenticationRepository
         $token = auth('api')->refresh();
         return $token;
     }
+
+    public function validateToken(){
+        return auth('api')->check();
+    }
 }

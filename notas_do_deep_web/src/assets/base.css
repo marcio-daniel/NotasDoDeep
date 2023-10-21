@@ -1,0 +1,31 @@
+/* color palette from <https://github.com/vuejs/theme> */
+:root {
+  --gray: #484849;
+  --light_gray: #767676;
+  --secondaryColor: #ACACAC;
+  --primaryColor: #C2CACB;
+
+}
+
+/* semantic color variables for this project */
+:root {
+  --color-background: var(--gray);
+  --color-background-light: var(--light_gray);
+  --color-primary: var(--primaryColor);
+  --color-secondary: var(--secondaryColor);
+}
+
+
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  font-weight: normal;
+}
+
+body {
+  background: var(--color-background);
+  font-family: Arial, Helvetica, sans-serif;
+}

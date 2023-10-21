@@ -46,4 +46,10 @@ class AuthenticationController extends Controller
         $token = $authenticationRepository->refresh();
         return response()->json(['token'=>$token],200);
     }
+
+    public function validateToken(){
+        $authenticationRepository = new AuthenticationRepository($this->user);
+        $validToken = $authenticationRepository->validateToken();
+        return response()->json(['validToken' => $validToken],200);
+    }
 }
