@@ -1,160 +1,178 @@
-# Documentação Técnica e Funcional do Software API Notas do Deep
+# Documentação Completa do Software - API de Notas do Deep
 
-## Resumo Funcional do Software
+---
 
-O sistema API Notas do Deep é uma solução para gerenciar anotações de usuários, construída utilizando o framework Laravel. Ele permite a realização de operações CRUD (Create, Read, Update, Delete) sobre as notas, além de funcionalidades de autenticação, registro, login e gestão de tokens JWT para segurança. Dentro do escopo do sistema, usuários podem se registrar, realizar login, criar, listar, editar e deletar suas notas.
+## Resumo do Software
 
-## Documentação Técnica
+A **API Notas do Deep** foi projetada como uma aplicação backend para gerenciar tarefas e notas por meio de operações CRUD (Create, Read, Update, Delete). Ela utiliza o framework Laravel, uma solução robusta em PHP, para fornecer funcionalidade escalável e modular. O sistema é baseado em autenticação JWT (JSON Web Tokens) para proteger o acesso às informações e interações dos usuários, garantindo que apenas usuários autenticados possam acessar, criar, atualizar e deletar suas próprias notas.
 
-### Arquivo: `app/Console/Kernel.php`
+Este projeto é dividido em várias partes principais, incluindo configuração de autenticação, middleware para segurança, modelos para representação de dados, controladores para lógica de negócios, repositórios para interações com o banco de dados e rotas para manipulação de endpoints.
 
-**Descrição Técnica:**
+---
 
-- **Namespace:** `App\Console`
-- **Classe:** `Kernel`
-    - Classe responsável por definir o agendamento de comandos e registrar comandos da aplicação.
-- **Funções:**
-    - `schedule`: Define o agendamento de comandos da aplicação. Exemplo (comando comentado) para execução horária.
-    - `commands`: Método para registrar os comandos da aplicação. Carrega comandos definidos em `app/Console/Commands` e as rotas de console `routes/console.php`.
+## Estrutura e Descrição Técnica
 
-### Arquivo: `app/Exceptions/Handler.php`
+### Camadas do Sistema
 
-**Descrição Técnica:**
+#### 1. **Configurações**
+Localizados na pasta `config`, as configurações do software definem os parâmetros globais da aplicação. Entre os arquivos importantes estão:
+- `auth.php`: Configurações de autenticação usando JWT como driver principal.
+- `jwt.php`: Configurações específicas do JWT, incluindo o segredo, tempo de expiração e comportamento do token.
+- Outros arquivos, como `app.php`, `database.php`, `mail.php`, `queue.php`, entre outros, fornecem personalizações gerais para o sistema.
 
-- **Namespace:** `App\Exceptions`
-- **Classe:** `Handler`
-    - Classe responsável por gerenciar exceções na aplicação.
-- **Propriedades:**
-    - `dontReport`: Lista de tipos de exceções que não são reportadas.
-    - `dontFlash`: Lista de atributos que nunca são armazenados em sessão para exceções de validação.
-- **Funções:**
-    - `register`: Método para registrar callbacks de manuseio de exceção.
+#### 2. **Modelos**
+Os modelos representam abstrações das tabelas no banco de dados:
+- **User (`App\Models\User`)**:
+  - Representa usuários da plataforma.
+  - Implementa o contrato `JWTSubject` para compatibilidade com autenticação JWT.
+  - Contém os atributos `name`, `email`, `password`.
+  - Métodos importantes:
+    - `getJWTIdentifier()`: Identificador único do JWT.
+    - `getJWTCustomClaims()`: Adiciona claims personalizados ao JWT.
 
-### Arquivo: `app/Http/Controllers/AuthenticationController.php`
+- **Note (`App\Models\Note`)**:
+  - Representa notas criadas pelos usuários.
+  - Contém atributos como `user_id`, `type`, `title`, `description`.
+  - Métodos importantes:
+    - `rules()`: Validações para criação/edição de notas.
+    - `feedback()`: Mensagens de erro personalizadas para validações.
+    - Relacionamento com o usuário: `belongsTo`.
 
-**Descrição Técnica:**
-
-- **Namespace:** `App\Http\Controllers`
-- **Classe:** `AuthenticationController`
-    - Controlador responsável pelas operações de autenticação.
-- **Propriedades:**
-    - `$user`: Instância do modelo `User`.
-- **Funções:**
-    - `__construct`: Inicializa `$user`.
-    - `login`: Realiza login do usuário e retorna token JWT em caso de sucesso.
-    - `registration`: Registra um novo usuário e retorna informações do usuário criado.
-    - `logout`: Realiza logout do usuário.
+#### 3. **Controladores**
+Responsáveis pela logic de negócios e manipulação dos dados enviados às rotas:
+- **AuthenticationController**:
+  - Gerencia autenticação e registro de usuários.
+  - Métodos:
+    - `login`: Realiza login e retorna token JWT.
+    - `registration`: Registra novos usuários.
+    - `logout`: Revoga token JWT do usuário.
     - `refresh`: Renova o token JWT.
-    - `validateToken`: Verifica a validade do token JWT.
+    - `validateToken`: Verifica validade do token JWT.
 
-### Arquivo: `app/Http/Controllers/Controller.php`
-
-**Descrição Técnica:**
-
-- **Namespace:** `App\Http\Controllers`
-- **Classe:** `Controller`
-    - Classe base genérica para outros controladores herdarem.
-    - Utiliza traits para autorizar requisições, despachar jobs e validar requisições.
-
-### Arquivo: `app/Http/Controllers/NoteController.php`
-
-**Descrição Técnica:**
-
-- **Namespace:** `App\Http\Controllers`
-- **Classe:** `NoteController`
-    - Controlador responsável pelas operações CRUD de notas dos usuários.
-- **Propriedade:**
-    - `$note`: Instância do modelo `Note`.
-- **Funções:**
-    - `__construct`: Inicializa `$note`.
-    - `index`: Lista notas de um usuário específico.
+- **NoteController**:
+  - Gerencia operações CRUD para notas.
+  - Métodos:
+    - `index`: Exibe lista de notas de um usuário.
     - `store`: Cria uma nova nota.
-    - `show`: Exibe uma nota específica.
-    - `update`: Atualiza uma nota existente.
-    - `destroy`: Remove uma nota específica.
+    - `show`: Exibe os detalhes de uma nota por ID.
+    - `update`: Atualiza campos específicos ou todos os atributos de uma nota.
+    - `destroy`: Exclui uma nota específica.
 
-### Arquivo: `app/Http/Kernel.php`
+#### 4. **Middlewares**
+Camada de segurança para controle de requisições. Inclui:
+- **Authenticate**: Redireciona usuários não autenticados para login.
+- **VerifyCsrfToken**: Garante proteção contra ataques CSRF (Cross-Site Request Forgery).
+- **EncryptCookies**: Protege dados sensíveis armazenados em cookies.
+- Diversos outros middlewares, como `TrimStrings`, `TrustProxies` e `RedirectIfAuthenticated`.
 
-**Descrição Técnica:**
+#### 5. **Repositórios**
+Utilizados para concentrar as interações com o banco de dados:
+- **AuthenticationRepository**:
+  - Valida credenciais de usuários.
+  - Cria novos registros.
+  - Interage diretamente com o modelo `User`.
+- **NoteRepository**:
+  - Gerencia manipulação de dados no modelo `Note`.
+  - Funcionalidades:
+    - Listar, criar, atualizar e excluir notas.
+    - Validações específicas no tipo de conteúdo das notas.
 
-- **Namespace:** `App\Http`
-- **Classe:** `Kernel`
-    - Classe principal de middleware para requisições HTTP.
-- **Propriedades:**
-    - `middleware`: Pilha de middleware global da aplicação.
-    - `middlewareGroups`: Grupos de middleware para requisições web e API.
-    - `routeMiddleware`: Middleware de rota que podem ser atribuídos a grupos ou utilizados individualmente.
+#### 6. **Rotas**
+As rotas conectam os endpoints à lógica dos controladores. Três arquivos principais gerenciam as rotas:
+- **`routes/api.php`**:
+  - Endpoints para CRUD de notas.
+  - Rotas abertas: `/login`, `/registration`, `/validateToken`.
+  - Rotas protegidas (`middleware jwt.auth`): `/note`, `/logout`, `/refresh`.
 
-### Arquivo: `app/Http/Middleware/*`
+- **`routes/web.php`**:
+  - Gerencia rotas da interface web.
+  - Atualmente retorna uma página `welcome`.
 
-**Descrição Técnica:**
+#### 7. **Banco de Dados**
+O sistema utiliza o banco de dados relacional para armazenar informações. Algumas migrações importantes:
+- **`users`**: Registra informações de usuários.
+- **`notes`**: Registra informações de notas/tarefas vinculadas aos usuários.
+- Relacionamento:
+  - A tabela `notes` utiliza a chave estrangeira `user_id` para vincular-se à tabela `users`.
 
-- **Authenticate.php**: Middleware para verificar autenticação de usuários.
-- **EncryptCookies.php**: Middleware para encriptar cookies.
-- **PreventRequestsDuringMaintenance.php**: Middleware para prevenir requisições durante o modo de manutenção.
-- **RedirectIfAuthenticated.php**: Middleware para redirecionar usuários autenticados.
-- **TrimStrings.php**: Middleware para remover espaços em branco de strings.
-- **TrustHosts.php**: Middleware para confiar em hosts específicos.
-- **TrustProxies.php**: Middleware para confiar em proxies específicos.
-- **VerifyCsrfToken.php**: Middleware para verificar tokens CSRF.
+---
 
-### Arquivo: `app/Models/*`
+### Funcionamento Geral
 
-**Descrição Técnica:**
+#### Ciclo de Autenticação
+1. **Login** (`/login`):
+   - O cliente envia email e senha.
+   - O sistema valida credenciais, gera token JWT e retorna ao cliente.
+2. **Acesso Protegido**:
+   - O cliente utiliza o token JWT para acessar endpoints protegidos.
+3. **Logout**:
+   - O token JWT do servidor é invalidado, o cliente deve realizar login novamente.
 
-- **Note.php**:
-    - **Propriedades:** `fillable` (campos permitidos para inserção em massa), `hidden` (campos ocultos na serialização).
-    - **Funções:** `rules` (regras de validação), `feedback` (mensagens de feedback), `user` (relacionamento belongsTo com `User`).
+#### Ciclo CRUD de Notas
+1. **Listar Notas** (`/note` - GET):
+   - Exibe todas as notas de um usuário autenticado.
+2. **Criar Nota** (`/note` - POST):
+   - Valida e cria uma nova nota vinculada ao usuário autenticado.
+3. **Editar Nota** (`/note/{id}` - PATCH/PUT):
+   - Atualiza dados de uma nota especificada pelo ID.
+4. **Deletar Nota** (`/note/{id}` - DELETE):
+   - Remove uma nota específica.
 
-- **User.php**:
-    - **Interface:** `JWTSubject` para integração com JWT.
-    - **Propriedades:** `fillable`, `hidden`, `casts`.
-    - **Funções:** `tasks` (relacionamento hasMany com `Task`), `getJWTIdentifier`, `getJWTCustomClaims`.
+---
 
-### Arquivo: `app/Providers/*`
+## Diagramas
 
-**Descrição Técnica:**
+### Diagrama de Classes (Lógica do Código)
+```plaintext
++-------------------+              +-------------------+
+|  Authentication   |              |       Note        |
+|    Controller     |              |    Controller     |
++-------------------+              +-------------------+
+| login()           |              | index()           |
+| registration()    |              | store()           |
+| logout()          |              | show(id)          |
+| refresh()         |              | update(id)        |
+| validateToken()   |              | destroy(id)       |
++-------------------+              +-------------------+
+         ▲                                    ▲
+         |                                    |
+         |                                    |
++-------------------+              +-------------------+
+| Authentication    |              |       Note        |
+|    Repository     |              |    Repository     |
++-------------------+              +-------------------+
+| userRegistration()|              | createNote()      |
+| login()           |              | showNote(id)      |
+| getUser()         |              | deleteNote(id)    |
+| refreshToken()    |              | noteList()        |
++-------------------+              +-------------------+
+```
 
-- **AppServiceProvider.php**: Classe para registrar e inicializar serviços da aplicação.
-- **AuthServiceProvider.php**: Classe para registrar políticas de autenticação e autorização.
-- **BroadcastServiceProvider.php**: Classe para registrar rotas de broadcast.
-- **EventServiceProvider.php**: Classe para registrar eventos da aplicação.
-- **RouteServiceProvider.php**: Classe para configuração de rotas e limits de requisições.
+### Diagrama de Fluxo (Autenticação)
+```plaintext
+Cliente
+  ↓
+/login (POST) → AuthenticationController@login → AuthenticationRepository@login → Token JWT Retornado
+  ↓
+Token JWT
+  ↓
+Middleware → Validação JWT → Controle de Acesso
+```
 
-### Arquivo: `app/Repository/*`
+---
 
-**Descrição Técnica:**
+## Testes
+O projeto inclui casos de teste iniciais para validação básica:
+- **Testes Unitários**:
+  - Verificam integridade das funções principais independentemente da aplicação.
+  - Utilizam `PHPUnit`.
+- **Testes de Integração (Feature)**:
+  - Validam rotas como `GET('/')` para verificar retornos esperados.
 
-- **AuthenticationRepository.php**:
-    - **Funções:** `userRegistration` (registro de usuário), `login` (autenticação e geração de token), `getUser` (busca de usuário), `refresh` (renovação de token), `validateToken` (validação de token).
+---
 
-- **NoteRepository.php**:
-    - **Funções:** `createNote` (criação de nota), `showNote` (busca de nota), `deleteNote` (remoção de nota), `noteList` (listagem de notas), `updatedNote` (atualização de nota).
+## Conclusão
 
-### Arquivo: `bootstrap/app.php`
+O software **API Notas do Deep** foi cuidadosamente construído para fornecer uma experiência confiável de gestão de notas com autenticação robusta. A arquitetura modular facilita manutenção e escalabilidade. Embora esteja funcional, refinamentos adicionais podem ser feitos, como implementar mais testes, otimizar consultas e melhorar a documentação para endpoints.
 
-**Descrição Técnica:**
-
-- Arquivo para criação da instância da aplicação Laravel, registro de kernels de HTTP e Console, e retorno da aplicação para execução.
-
-### Arquivos de Configuração (`config/*.php`)
-
-**Descrição Técnica:**
-
-Set de arquivos responsáveis por configurar várias facetas da aplicação, incluindo:
-
-- `app.php`: Configurações da aplicação.
-- `auth.php`: Configurações de autenticação.
-- `broadcasting.php`: Configurações de broadcast.
-- `cache.php`: Configurações de cache.
-- `cors.php`: Configurações de CORS.
-- `database.php`: Configurações de banco de dados.
-- `filesystems.php`: Configurações de sistema de arquivos.
-- `hashing.php`: Configurações de hashing.
-- `jwt.php`: Configurações de JWT.
-- `logging.php`: Configurações de logging.
-- `mail.php`: Configurações de correio eletrônico.
-
-**Conclusão:** 
-
-O software API Notas do Deep é uma robusta aplicação Laravel voltada para gestão de anotações e autenticação de usuários. A estrutura modular permite fácil manutenção e extensibilidade, com várias camadas de abstração desde controladores, repositórios, até middleware e provedores de serviço. As operações de criação, leitura, atualização e deleção de notas são bem definidas e integradas com a segurança proporcionada pelo JWT.
+Esta documentação detalha o funcionamento interno e externo do sistema, ajudando desenvolvedores a expandi-lo ou integrá-lo a outras soluções.
