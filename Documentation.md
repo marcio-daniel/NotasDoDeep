@@ -1,202 +1,164 @@
-## Especificação Funcional do Projeto `API_notas_do_deep`
+## Especificação Funcional do Sistema "API Notas do Deep"
 
-O **`API_notas_do_deep`** é uma aplicação baseada no framework Laravel que proporciona um sistema de autenticação e gerenciamento de notas (tarefas) para usuários. O sistema utiliza autenticação JWT para proteger as rotas da API e possui recursos RESTful para realizar operações CRUD (Criar, Ler, Atualizar e Excluir) sobre as notas.
-
----
-
-### **Características principais do sistema**
-
-1. **Autenticação de usuários** baseada em JWT.
-   - **Criação de usuários** através do `registration`.
-   - **Login** utilizando e-mail e senha.
-   - **Logout** para invalidação do token.
-   - **Renovação dos tokens** através do recurso `refresh`.
-   - **Validação de tokens** para verificar se o token é válido.
-
-2. **Gerenciamento de notas (CRUD)**:
-   - **Criação de notas** associadas a usuários.
-   - **Leitura de uma lista de notas** de um usuário.
-   - **Leitura de uma nota específica** por ID.
-   - **Atualização de notas** (com recurso de PATCH para alterações parciais).
-   - **Exclusão de notas**.
-
-3. **Camadas de Repositórios** para abstrair lógica de negócios associada a usuários e notas.
-
-4. **Middleware e configuração centralizada**:
-   - Middleware como `jwt.auth` protege as rotas de API relacionadas a notas.
-   - Configurações para segurança e performance no uso de middleware, cache, CORS, etc.
+### Visão Geral do Sistema
+O sistema "API Notas do Deep" é uma API baseada no framework Laravel que visa permitir que usuários gerenciem suas notas através de operações CRUD (Create, Read, Update e Delete). A API utiliza JWT para autenticação, enquanto as notas e os usuários são armazenados em um banco de dados relacional gerenciado pelo Laravel. O sistema também implementa validação de entrada, tratamento de exceções e middleware para controle de acesso.
 
 ---
 
-### **Rotas da Aplicação**
+### Funcionalidades
+#### 1. **Autenticação de Usuário**
+   - Registro de novos usuários.
+   - Login de usuários com geração de tokens JWT.
+   - Logout de usuários.
+   - Renovação de token JWT.
+   - Validação de token JWT.
 
-#### **API Routes**
-As rotas da API são definidas no arquivo `routes/api.php`. Elas incluem:
-
-- **Autenticação**:
-  - `POST /login` - Realiza login e retorna o token JWT.
-  - `POST /registration` - Cria um novo usuário.
-  - `POST /logout` - Faz logout do usuário autenticado e invalida o token.
-  - `POST /refresh` - Renova o token.
-  - `GET /validateToken` - Verifica se o token é válido.
-
-- **Notas** (protegidas por `jwt.auth`):
-  - `GET /note` - Retorna todas as notas de um usuário.
-  - `POST /note` - Cria uma nova nota para um usuário.
-  - `GET /note/{id}` - Retorna uma nota específica pelo ID.
-  - `PUT/PATCH /note/{id}` - Atualiza uma nota pelo ID.
-  - `DELETE /note/{id}` - Remove uma nota pelo ID.
+#### 2. **Gerenciamento de Notas**
+   - Listar todas as notas de um usuário (`GET /note`).
+   - Criar uma nova nota (`POST /note`).
+   - Visualizar detalhes de uma nota específica (`GET /note/{id}`).
+   - Atualizar os atributos de uma nota (`PUT /note/{id}` ou `PATCH /note/{id}`).
+   - Excluir uma nota específica (`DELETE /note/{id}`).
 
 ---
 
-### **Estrutura de Banco de Dados**
-
-#### Tabelas e Configurações
-
-1. **Tabela `users`**:
-   - ID (auto incremento).
-   - Campos: `name`, `email`, `password`.
-   - Campo de lembrete: `remember_token`.
-
-2. **Tabela `notes`**:
-   - ID (auto incremento).
-   - Campos: `description`, `user_id`, `title`, `type`.
-   - Relacionamento: `user_id` como chave estrangeira que referencia `id` da tabela `users`.
+### Requisitos Não Funcionais
+   - **Segurança**: Uso de tokens JWT para autenticação e controle de acesso.
+   - **Performance**: Implementação de `throttle:api` para limitar o número de requisições por minuto.
+   - **Validação**: Utilização de regras de validação para garantir entradas confiáveis.
+   - **Mensagens de Feedback**: Mensagens de erro e sucesso são enviadas em formato JSON.
+   - **Escalabilidade**: Configuração para múltiplas conexões de banco de dados, suportando MySQL, SQLite, PostgreSQL, etc.
 
 ---
 
-### **Fluxo de Autenticação**
+### Fluxos de Uso
 
-1. Usuário realiza o **login**.
-   - Se as credenciais forem válidas, retorna um token JWT associando ao usuário.
-   - Caso contrário, retorna erro `403 (Email ou senha inválidos)`.
+#### **Usuário**
+1. Registro de novo usuário:
+   - **Endpoint**: `POST /registration`
+   - Validação: Verifica se o email já existe no sistema.
+   - Retorno: HTTP 201 (sucesso) ou 409 (conflito de email).
 
-2. Usuário utiliza o token para acessar as rotas protegidas como: **manipulação de notas** ou `logout`.
+2. Autenticação:
+   - **Endpoint**: `POST /login`
+   - Validação: Email e senha.
+   - Geração de token JWT para o usuário autenticado.
+   - Retorno: Token JWT e dados do usuário (HTTP 200 ou 403 em caso de falha).
 
-3. Token pode ser **renovado** usando a rota `POST /refresh`.
+3. Logout:
+   - **Endpoint**: `POST /logout`
+   - Invalida o token do usuário atual.
+   - Retorno: Mensagem de sucesso (HTTP 200).
 
----
+#### **Nota**
+1. Listar notas de um usuário:
+   - **Endpoint**: `GET /note`
+   - Validação: Confirmação do `user_id`.
+   - Retorno: Lista de notas do usuário autenticado (HTTP 200 ou 400).
 
-### **Fluxo de Gestão de Notas**
+2. Criar nota:
+   - **Endpoint**: `POST /note`
+   - Validação: Campos obrigatórios (`user_id`, `type`, `title`, `description`).
+   - Retorno: Dados da nota criada (HTTP 201 ou 400 em caso de erro).
 
-1. **Listagem**: utilizando o `GET /note`, é possível recuperar todas as notas relacionadas ao usuário autenticado.
+3. Atualizar nota:
+   - **Endpoint**: `PUT /note/{id}`
+   - Validação: Atualização total ou parcial dos campos com validação.
+   - Retorno: Dados da nota atualizada (HTTP 200 ou 400).
 
-2. **Criação**: utilizando o `POST /note`, cria uma nota. Validações:
-   - `user_id`: campo obrigatório.
-   - `type`: deve ser "text".
-   - `title`: mínimo de 1 caractere.
-   - `description`: obrigatório.
+4. Visualizar uma nota:
+   - **Endpoint**: `GET /note/{id}`
+   - Retorno: Detalhes da nota (HTTP 200 ou 400 se id não existir).
 
-3. **Atualização**: utiliza o `PUT` ou `PATCH` para atualizar uma nota. Permite alterações de todos ou alguns dados.
-
-4. **Exclusão**: utiliza o `DELETE` para remover notas específicas com base no identificador (ID).
-
----
-
-### **Dependências e Configurações**
-
-- Autenticação JWT configurada no arquivo `config/jwt.php`.
-- Middleware:
-  - `EncryptCookies` e `VerifyCsrfToken` implementam funções de segurança.
-- Tratamento de exceções no arquivo de **Handler**.
-- Serviço centralizado em Providers:
-  - `AuthServiceProvider` para autenticação.
-  - `RouteServiceProvider` define grupos e namespaces das rotas.
-
----
-
-### **Arquitetura**
-
-1. **Controllers**:
-   - `AuthenticationController`: Gerencia todas as operações de autenticação.
-   - `NoteController`: Gerencia operações CRUD das notas.
-   - `Controller`: Classe base para os outros controladores.
-
-2. **Models**:
-   - `User`: Representa usuários no sistema e utiliza relacionamento com `Note`.
-   - `Note`: Model das notas, com validação de regras e feedback de mensagens.
-
-3. **Repositories**:
-   - `AuthenticationRepository`: Abstração para lógica de autenticação e renovação de tokens.
-   - `NoteRepository`: Abstração de lógica de negócios relacionada a notas.
-
-4. **Camadas de Configuração**: Arquivos como `config/app.php`, `config/auth.php` etc., centralizam definições relacionadas à aplicação.
+5. Excluir nota:
+   - **Endpoint**: `DELETE /note/{id}`
+   - Retorno: Confirmação de exclusão (HTTP 200 ou 400 se id não existir).
 
 ---
 
-### **Diagramas**
+### Componentes do Sistema e Arquitetura:
+#### Arquivos e classes:
+   - `app/Http/Controllers/AuthenticationController.php`:
+      - Classe para gerenciar autenticação.
+   - `app/Http/Controllers/NoteController.php`:
+      - Classe de controle das operações relacionadas às notas.
+   - `app/Models/User.php` e `app/Models/Note.php`:
+      - Representação ORM das tabelas no banco de dados para usuários e notas.
+   - `app/Repository`:
+      - Classes responsáveis pela lógica de negócio de autenticação e gerenciamento de notas.
+   - `config/jwt.php`:
+      - Configuração de autenticação JWT.
+   - `routes/api.php`:
+      - Cadastro de rotas da API.
+   - `database/migrations`:
+      - Scripts para criação de tabelas no banco.
 
-#### **Diagrama de Casos de Uso**
+#### Diagrama de Arquitetura
+```mermaid
+graph TB
+    A[Frontend ou Software Cliente]
+    B[API Middleware]
+    C[NoteController]
+    D[AuthenticationController]
+    E[Middleware JWT]
+    F[User & Note - Models]
+    G[Database Repository]
+    H[Relational Database]
+    
+    A -->|Requisição HTTP (token JWT)| B
+    B -->|Gerenciamento de Notas| C
+    B -->|Autenticação| D
+    C -->|Validação & Processamento| F
+    D -->|Validação & Processamento| F
+    F -->|Manipulação de Dados| G
+    G -->|Operação| H
+```
 
+---
+
+### Diagrama de Fluxo de Controle de Autenticação
 ```mermaid
 graph TD
-    A[Usuário] -->|Autentica-se| B[Login]
-    A -->|Registra novo usuário| C[Registration]
-    A -->|Desloga| D[Logout]
-    A -->|Renova seu token| E[Refresh]
-    A -->|Valida seu token| F[Validate Token]
-    
-    A -->|Acessa notas| G[Notas CRUD]
-        G -->|Cria Nota| H[Create]
-        G -->|Lê Notas| I[Read]
-        G -->|Atualiza Nota| J[Update]
-        G -->|Exclui Nota| K[Delete]
+    A[Usuário]
+    B[POST /login]
+    C[AuthenticationController]
+    D[AuthenticationRepository]
+    E[JWT Provider]
+    F[Database]
+
+    A --> B
+    B --> C
+    C --> D
+    D -->|Valida Credenciais| F
+    F -->|Retorna Usuário| D
+    D -->|Gera Token| E
+    E -->|Retorna Token| C
+    C -->|Resposta com Token| A
 ```
 
 ---
 
-#### **Diagrama de Classes Simplificado**
-
+### Diagrama de Fluxo de Controle CRUD de Notas
 ```mermaid
-classDiagram
+graph TD
+    A[Usuário]
+    B[API HTTP Request]
+    C[NoteController]
+    D[Middleware JWT - Validação]
+    E[NoteRepository]
+    F[Database]
 
-class User {
-    id : integer
-    name : string
-    email : string
-    password : string
-    remember_token : string
+    A --> B
+    B -->|Autenticação JWT| D
+    D -->|Validação & Controle| C
 
-    + tasks() : Relation
-}
-
-class Note {
-    id : integer
-    description : text
-    user_id : integer
-    title : string
-    type : string
-
-    + user() : Relation
-    + rules() : array
-    + feedback() : array
-}
-
-class AuthenticationController {
-    - user : User
-    + login(request)
-    + registration(request)
-    + logout()
-    + refresh()
-    + validateToken()
-}
-
-class NoteController {
-    - note : Note
-    + index(request)
-    + store(request)
-    + show(id)
-    + update(request, id)
-    + destroy(id)
-}
-
-User --> Note : "1:N Relation"
-AuthenticationController --> User : "Interage com"
-NoteController --> Note : "Interage com"
+    C -->|Operação Read/Write| E
+    E -->|Opera no banco| F
+    F -->|Retorno Dado| E
+    E -->|Retorno ao Frontend| A
 ```
 
 ---
 
-### **Conclusão**
-
-O projeto é uma API RESTful segura e modular, com cada camada isolada para facilitar a manutenção e escalabilidade. Os fluxos de autenticação e gestão de notas estão bem definidos conforme as melhores práticas do Laravel. O sistema é adequado para aplicações baseadas em gerenciamento de usuários e notas.
+### Conclusão
+O sistema "API Notas do Deep" implementa um conjunto robusto de funcionalidades para autenticação e gerência de notas. Ele segue boas práticas do Laravel, como uso de middleware, modelo MVC e autenticação JWT. A segurança e escalabilidade são priorizadas. Para a implementação final, é recomendado realizar testes complementares (`Feature` e `Unit`), conforme verificado no diretório `tests`.
