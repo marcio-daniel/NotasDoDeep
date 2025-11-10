@@ -1,164 +1,118 @@
-## Especificação Funcional do Sistema "API Notas do Deep"
+### Especificação Funcional API Notas do Deep
 
-### Visão Geral do Sistema
-O sistema "API Notas do Deep" é uma API baseada no framework Laravel que visa permitir que usuários gerenciem suas notas através de operações CRUD (Create, Read, Update e Delete). A API utiliza JWT para autenticação, enquanto as notas e os usuários são armazenados em um banco de dados relacional gerenciado pelo Laravel. O sistema também implementa validação de entrada, tratamento de exceções e middleware para controle de acesso.
-
----
-
-### Funcionalidades
-#### 1. **Autenticação de Usuário**
-   - Registro de novos usuários.
-   - Login de usuários com geração de tokens JWT.
-   - Logout de usuários.
-   - Renovação de token JWT.
-   - Validação de token JWT.
-
-#### 2. **Gerenciamento de Notas**
-   - Listar todas as notas de um usuário (`GET /note`).
-   - Criar uma nova nota (`POST /note`).
-   - Visualizar detalhes de uma nota específica (`GET /note/{id}`).
-   - Atualizar os atributos de uma nota (`PUT /note/{id}` ou `PATCH /note/{id}`).
-   - Excluir uma nota específica (`DELETE /note/{id}`).
+A API Notas do Deep é uma aplicação desenvolvida em **Laravel** para gerenciar notas de usuários, oferecendo funcionalidades de autenticação, registro, visualização, adição, atualização e exclusão de notas.
 
 ---
 
-### Requisitos Não Funcionais
-   - **Segurança**: Uso de tokens JWT para autenticação e controle de acesso.
-   - **Performance**: Implementação de `throttle:api` para limitar o número de requisições por minuto.
-   - **Validação**: Utilização de regras de validação para garantir entradas confiáveis.
-   - **Mensagens de Feedback**: Mensagens de erro e sucesso são enviadas em formato JSON.
-   - **Escalabilidade**: Configuração para múltiplas conexões de banco de dados, suportando MySQL, SQLite, PostgreSQL, etc.
+### Funcionalidades do sistema
+
+**Gerenciamento de Usuários:**
+1. Registro de novos usuários com validação de email único e senha criptografada.
+2. Login que retorna um token JWT, usado para autenticação das operações subsequentes.
+3. Logout, que invalida o token JWT.
+4. Validação do token JWT.
+5. Atualização de token JWT por meio de um endpoint.
+
+**Gerenciamento de Notas:**
+1. Adição de novas notas associadas a um usuário autenticado, com validações sobre os campos obrigatórios (user_id, type, title e description).
+2. Visualização de todas as notas associadas a um usuário por meio de seu ID.
+3. Visualização de uma nota específica pelo seu identificador único (ID).
+4. Atualização das informações de uma nota existente (suporte para requisição PUT e PATCH).
+5. Exclusão de notas associadas a IDs válidos no banco de dados.
 
 ---
 
-### Fluxos de Uso
+### Regras de Negócio
 
-#### **Usuário**
-1. Registro de novo usuário:
-   - **Endpoint**: `POST /registration`
-   - Validação: Verifica se o email já existe no sistema.
-   - Retorno: HTTP 201 (sucesso) ou 409 (conflito de email).
-
-2. Autenticação:
-   - **Endpoint**: `POST /login`
-   - Validação: Email e senha.
-   - Geração de token JWT para o usuário autenticado.
-   - Retorno: Token JWT e dados do usuário (HTTP 200 ou 403 em caso de falha).
-
-3. Logout:
-   - **Endpoint**: `POST /logout`
-   - Invalida o token do usuário atual.
-   - Retorno: Mensagem de sucesso (HTTP 200).
-
-#### **Nota**
-1. Listar notas de um usuário:
-   - **Endpoint**: `GET /note`
-   - Validação: Confirmação do `user_id`.
-   - Retorno: Lista de notas do usuário autenticado (HTTP 200 ou 400).
-
-2. Criar nota:
-   - **Endpoint**: `POST /note`
-   - Validação: Campos obrigatórios (`user_id`, `type`, `title`, `description`).
-   - Retorno: Dados da nota criada (HTTP 201 ou 400 em caso de erro).
-
-3. Atualizar nota:
-   - **Endpoint**: `PUT /note/{id}`
-   - Validação: Atualização total ou parcial dos campos com validação.
-   - Retorno: Dados da nota atualizada (HTTP 200 ou 400).
-
-4. Visualizar uma nota:
-   - **Endpoint**: `GET /note/{id}`
-   - Retorno: Detalhes da nota (HTTP 200 ou 400 se id não existir).
-
-5. Excluir nota:
-   - **Endpoint**: `DELETE /note/{id}`
-   - Retorno: Confirmação de exclusão (HTTP 200 ou 400 se id não existir).
+- As operações relacionadas às notas devem estar vinculadas aos usuários autenticados.
+- O registro de usuários rejeitará emails que já estejam cadastrados.
+- A criação de notas só aceitará o tipo "text".
+- Ações como login, logout e validação requerem tokens JWT.
+- Para o escopo da API, algumas respostas estão configuradas como objetos JSON (ex.: mensagens de retorno em caso de erro ou sucesso).
+- Métodos APIRoute para notas estão protegidos por middleware `jwt.auth` para requerer autenticação.
 
 ---
 
-### Componentes do Sistema e Arquitetura:
-#### Arquivos e classes:
-   - `app/Http/Controllers/AuthenticationController.php`:
-      - Classe para gerenciar autenticação.
-   - `app/Http/Controllers/NoteController.php`:
-      - Classe de controle das operações relacionadas às notas.
-   - `app/Models/User.php` e `app/Models/Note.php`:
-      - Representação ORM das tabelas no banco de dados para usuários e notas.
-   - `app/Repository`:
-      - Classes responsáveis pela lógica de negócio de autenticação e gerenciamento de notas.
-   - `config/jwt.php`:
-      - Configuração de autenticação JWT.
-   - `routes/api.php`:
-      - Cadastro de rotas da API.
-   - `database/migrations`:
-      - Scripts para criação de tabelas no banco.
+### Validação de Entrada
 
-#### Diagrama de Arquitetura
-```mermaid
-graph TB
-    A[Frontend ou Software Cliente]
-    B[API Middleware]
-    C[NoteController]
-    D[AuthenticationController]
-    E[Middleware JWT]
-    F[User & Note - Models]
-    G[Database Repository]
-    H[Relational Database]
-    
-    A -->|Requisição HTTP (token JWT)| B
-    B -->|Gerenciamento de Notas| C
-    B -->|Autenticação| D
-    C -->|Validação & Processamento| F
-    D -->|Validação & Processamento| F
-    F -->|Manipulação de Dados| G
-    G -->|Operação| H
+Os elementos `Models\User` e `Models\Note` possuem validações configuradas:
+
+**Note:**  
+- `user_id`: Obrigatório.
+- `type`: Obrigatório, mínimo 4 caracteres. Precisa ser igual a "text".
+- `title`: Obrigatório, mínimo 1 caractere.
+- `description`: Obrigatório.
+
+---
+
+### Endpoints
+
+**Autenticação:**
+1. **POST /login**
+   - Exige email e senha.
+   - Retorna token JWT e dados do usuário autenticado.
+   - Mensagem de erro para email ou senha inválidos.
+
+2. **POST /registration**
+   - Exige nome, email e senha.
+   - Registra novo usuário e retorna dados do usuário.
+   - Retorna erro se o email já estiver em uso.
+
+3. **POST /logout**
+   - Invalida o token JWT do usuário autenticado.
+   - Retorna mensagem de sucesso.
+
+4. **POST /refresh**
+   - Atualiza o token JWT.
+   - Retorna novo token JWT.
+
+5. **GET /validateToken**
+   - Verifica validade do token JWT.
+   - Retorna estado do token como válido ou não.
+
+**Notas:**
+1. **GET /note**
+   - Recepções apenas para usuários autenticados com ID informado.
+   - Retorna a lista de notas ou erro caso o usuário não seja encontrado.
+
+2. **POST /note**
+   - Requer campos obrigatórios (user_id, type, title, description).
+   - Valida as entradas (regras e feedbacks) no modelo.
+   - Retorna a nota criada ou erro caso o type seja inválido.
+
+3. **GET /note/{id}**
+   - Retorna as informações de uma nota pelo ID informado.
+   - Retorna erro se a nota não for encontrada.
+
+4. **PUT | PATCH /note/{id}**
+   - Permite a atualização completa (PUT) ou parcial (PATCH) dos campos de uma nota.
+   - Valida os campos antes de aplicar as alterações.
+   - Retorna nota atualizada ou mensagem de erro em caso de falha.
+
+5. **DELETE /note/{id}**
+   - Exclui uma nota.
+   - Retorna mensagem de sucesso ou erro se o ID não for encontrado.
+
+---
+
+### Diagrama UML (simplificado)
+
+#### **Caso de uso da aplicação**
+
+```plaintext
++----------------------------+
+|         Usuário            |
++----------------------------+
+        /          \
+POST /login       POST /registration
+   \                   \
+POST /logout         POST /note
+   \                   /
+GET /validateToken  GET /note/{id}
+                 \    \
+                    DELETE /note/{id}
 ```
 
 ---
 
-### Diagrama de Fluxo de Controle de Autenticação
-```mermaid
-graph TD
-    A[Usuário]
-    B[POST /login]
-    C[AuthenticationController]
-    D[AuthenticationRepository]
-    E[JWT Provider]
-    F[Database]
-
-    A --> B
-    B --> C
-    C --> D
-    D -->|Valida Credenciais| F
-    F -->|Retorna Usuário| D
-    D -->|Gera Token| E
-    E -->|Retorna Token| C
-    C -->|Resposta com Token| A
-```
-
----
-
-### Diagrama de Fluxo de Controle CRUD de Notas
-```mermaid
-graph TD
-    A[Usuário]
-    B[API HTTP Request]
-    C[NoteController]
-    D[Middleware JWT - Validação]
-    E[NoteRepository]
-    F[Database]
-
-    A --> B
-    B -->|Autenticação JWT| D
-    D -->|Validação & Controle| C
-
-    C -->|Operação Read/Write| E
-    E -->|Opera no banco| F
-    F -->|Retorno Dado| E
-    E -->|Retorno ao Frontend| A
-```
-
----
-
-### Conclusão
-O sistema "API Notas do Deep" implementa um conjunto robusto de funcionalidades para autenticação e gerência de notas. Ele segue boas práticas do Laravel, como uso de middleware, modelo MVC e autenticação JWT. A segurança e escalabilidade são priorizadas. Para a implementação final, é recomendado realizar testes complementares (`Feature` e `Unit`), conforme verificado no diretório `tests`.
+Se preferir, posso criar um diagrama mais visual em fluxogramas!
